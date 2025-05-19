@@ -1,11 +1,17 @@
 #!/bin/bash
-
+# Чекаємо запуск SQL Server
 echo "⏳ Чекаємо запуск SQL Server..."
-sleep 20
+until /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -Q "SELECT 1" > /dev/null 2>&1
+do
+  sleep 5
+done
 
-# Відновлення бази з .bak (підстав правильні імена logical files)
-# Для прикладу логічні імена 'YourDb' і 'YourDb_log' — перевір у своєму .bak файлі!
-/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P "$SA_PASSWORD" -Q "RESTORE DATABASE [kasinaq] FROM DISK = N'/var/opt/mssql/backup/YourDb.bak' WITH MOVE 'YourDb' TO '/var/opt/mssql/data/kasinaq.mdf', REPLACE"
+echo "✅ SQL Server запущено, відновлюємо базу..."
+
+# Відновлення бази з бекапу
+/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P $SA_PASSWORD -Q "RESTORE DATABASE YourDb FROM DISK = N'/var/opt/mssql/backup/YourDb.bak' WITH REPLACE"
 
 echo "✅ Відновлення завершено. SQL Server запущено."
-tail -f /var/opt/mssql/log/errorlog
+
+# Тримати контейнер живим, щоб не завершився
+tail -f /dev/null
