@@ -2,8 +2,17 @@
 
 /opt/mssql/bin/sqlservr &
 
-# Чекаємо запуск SQL Server (приблизно 15 секунд)
-sleep 20
+echo "⏳ Чекаємо запуску SQL Server..."
+sleep 5
 
-# Відновлення бази
-/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $SA_PASSWORD -Q "RESTORE DATABASE [kasinaq] FROM DISK = N'/var/opt/mssql/backup/YourDb.bak' WITH MOVE 'YourDb' TO '/var/opt/mssql/data/YourDb.mdf', MOVE 'YourDb_log' TO '/var/opt/mssql/data/YourDb_log.ldf', REPLACE"
+# Очікуємо доступність SQL Server перед виконанням sqlcmd
+until /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -Q "SELECT 1" &> /dev/null
+do
+    echo "❌ SQL Server ще не готовий, чекаємо 5 секунд..."
+    sleep 5
+done
+
+echo "✅ SQL Server готовий! Відновлюємо базу..."
+
+# Відновлення з .bak
+/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -Q "RESTORE DATABASE [YourDb] FROM DISK = N'/var/opt/mssql/backup/YourDb.bak' WITH MOVE 'YourDb' TO '/var/opt/mssql/data/YourDb.mdf', MOVE 'YourDb_log' TO '/var/opt/mssql/data/YourDb_log.ldf', REPLACE"
