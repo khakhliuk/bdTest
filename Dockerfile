@@ -1,19 +1,11 @@
 FROM mcr.microsoft.com/mssql/server:2019-latest
 
+ENV ACCEPT_EULA=Y
+ENV SA_PASSWORD=${SA_PASSWORD}
+
 USER root
-
-# Встановлюємо sqlcmd
-RUN apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev && \
-    ln -sfn /opt/mssql-tools/bin/* /usr/local/bin
-
-# Копіюємо .bak
-COPY ./YourDb.bak /var/opt/mssql/backup/YourDb.bak
-
-# Копіюємо entrypoint
-COPY ./entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN mkdir -p /var/opt/mssql/backup
+RUN chown -R mssql /var/opt/mssql
 
 USER mssql
-
-CMD ["/bin/bash", "/entrypoint.sh"]
+EXPOSE 1433
