@@ -1,19 +1,27 @@
 #!/bin/bash
 
+# Старт SQL Server у фоні
 /opt/mssql/bin/sqlservr &
-tail -f /var/opt/mssql/log/errorlog &
 
-echo "⏳ Чекаємо запуску SQL Server..."
-sleep 5
-
-# Очікуємо доступність SQL Server перед виконанням sqlcmd
-until /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -Q "SELECT 1" &> /dev/null
-do
+echo "⏳ Очікуємо старт SQL Server..."
+# Чекаємо доки sqlcmd може підключитись
+until /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P "$SA_PASSWORD" -Q "SELECT 1" > /dev/null 2>&1; do
     echo "❌ SQL Server ще не готовий, чекаємо 5 секунд..."
     sleep 5
 done
 
-echo "✅ SQL Server готовий! Відновлюємо базу..."
+echo "✅ SQL Server запущено! Імпортуємо базу..."
 
-# Відновлення з .bak
-/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -Q "RESTORE DATABASE [kasinaq] FROM DISK = N'/var/opt/mssql/backup/YourDb.bak' WITH MOVE 'YourDb' TO '/var/opt/mssql/data/YourDb.mdf', MOVE 'YourDb_log' TO '/var/opt/mssql/data/YourDb_log.ldf', REPLACE"
+# Якщо є .bak — імпортуємо
+/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P "$SA_PASSWORD" -Q "
+RESTORE DATABASE [kasinaq]
+FROM DISK = N'/var/opt/mssql/backup/YourDb.bak'
+WITH MOVE 'YourDb' TO '/var/opt/mssql/data/kasinaq.mdf',
+     MOVE 'YourDb_log' TO '/var/opt/mssql/data/kasinaq_log.ldf',
+     REPLACE;
+"
+
+# Або інший скрипт, якщо потрібно
+# /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P "$SA_PASSWORD" -i init.sql
+
+wait
