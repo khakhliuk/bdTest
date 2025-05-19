@@ -1,17 +1,22 @@
 FROM mcr.microsoft.com/mssql/server:2019-latest
 
-ENV ACCEPT_EULA=Y
-ENV SA_PASSWORD=YourStrong!Passw0rd
+USER root
 
-# Створюємо папку для бекапів
-RUN mkdir -p /var/opt/mssql/backup
+# Встановлюємо sqlcmd
+RUN apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y curl apt-transport-https gnupg && \
+    curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev && \
+    echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
 
-# Копіюємо базу і скрипт
+ENV PATH="${PATH}:/opt/mssql-tools/bin"
+
+USER mssql
+
+# Далі все як завжди:
 COPY ./YourDb.bak /var/opt/mssql/backup/YourDb.bak
 COPY ./entrypoint.sh /entrypoint.sh
 
-# Встановлюємо робочу директорію
-WORKDIR /var/opt/mssql
-
-# Запускаємо скрипт через bash без chmod
-CMD ["/bin/bash", "/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
